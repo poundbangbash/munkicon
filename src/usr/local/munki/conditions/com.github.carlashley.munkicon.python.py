@@ -7,71 +7,67 @@ try:
 except ImportError:
     from .munkicon import worker
 
+# Keys: 'mac_os_python_path'
+#       'mac_os_python_ver'
+#       'munki_python_path'
+#       'munki_python_ver'
+#       'official_python3_path'
+#       'official_python3_ver'
+
 
 class PythonConditions(object):
     """Generates information about python versions."""
     def __init__(self):
         self.conditions = self._process()
 
-    def _get_python_path(self, python):
-        """Gets the real path (following symlinks) of Python several paths."""
-        result = ''
-
-        if os.path.exists(python):
-            result = os.path.realpath(python)
-
-        return result
-
-    def _get_python_ver(self, python):
+    def _python_versions(self):
         """Gets the version of several Python paths (if they exist)."""
-        result = ''
+        result = {'mac_os_python_path': '',
+                  'mac_os_python_ver': '',
+                  'munki_python_path': '',
+                  'munki_python_ver': '',
+                  'official_python3_path': '',
+                  'official_python3_ver': ''}
 
-        if os.path.exists(python):
-            _path = os.path.realpath(python)
+        _munki_pythons = ['/usr/local/munki/python', '/usr/local/munki/munki-python']
+        _munki_python = [_x for _x in _munki_pythons if os.path.exists(_x)][0]
 
-            _cmd = [_path, '--version']
+        _python_paths = {'mac_os_python_path': '/usr/bin/python',
+                         'munki_python_path': _munki_python,
+                         'official_python3_path': '/usr/local/bin/python3'}
 
-            _subprocess = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            _result, _error = _subprocess.communicate()
+        for _k, _v in _python_paths.items():
+            if os.path.exists(_v):
+                _real_path = os.path.realpath(_v)
+                result[_k] = _real_path
 
-            if _subprocess.returncode == 0:
-                if _result:
-                    if isinstance(_result, bytes):
-                        _result = _result.decode('utf-8').strip()
+                _cmd = [_real_path, '--version']
 
-                    result = _result.replace('Python ', '')
-                elif _error:
-                    if isinstance(_error, bytes):
-                        _error = _error.decode('utf-8').strip()
+                _p = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                _r, _e = _p.communicate()
 
-                    if 'Python ' in _error:
-                        result = _error.replace('Python ', '')
+                if _p.returncode == 0:
+                    _ver = None
 
+                    if _r:
+                        if isinstance(_r, bytes):
+                            _r = _r.decode('utf-8').strip()
+
+                        _ver = _r.replace('Python ', '')
+                    elif _e:
+                        if isinstance(_e, bytes):
+                            _e = _e.decode('utf-8').strip()
+
+                        _ver = _e.replace('Python ', '')
+
+                    result[_k.replace('_path', '_ver')] = _ver
         return result
 
     def _process(self):
         """Process all conditions and generate the condition dictionary."""
         result = dict()
 
-        _mac = '/usr/bin/python'
-        _munki = '/usr/local/munki/munki-python'
-        _official3 = '/usr/local/bin/python3'
-
-        _mac_os_python_path = self._get_python_path(python=_mac)
-        _munki_python_path = self._get_python_path(python=_munki)
-        _official_python3_path = self._get_python_path(python=_official3)
-
-        _mac_os_python_ver = self._get_python_ver(python=_mac)
-        _munki_python_ver = self._get_python_ver(python=_munki)
-        _official_python3_ver = self._get_python_ver(python=_official3)
-
-        result['mac_os_python_path'] = _mac_os_python_path
-        result['munki_python_path'] = _munki_python_path
-        result['official_python3_path'] = _official_python3_path
-
-        result['mac_os_python_ver'] = _mac_os_python_ver
-        result['munki_python_ver'] = _munki_python_ver
-        result['official_python3_ver'] = _official_python3_ver
+        result.update(self._python_versions())
 
         return result
 
