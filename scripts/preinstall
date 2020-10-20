@@ -1,5 +1,5 @@
 #!/bin/zsh
-CONDITIONS_ROOT=/usr/local/bin/munki/conditions
+CONDITIONS_ROOT=/usr/local/munki/conditions
 MUNKICON_ROOT=${CONDITIONS_ROOT}/munkicon
 
 # Cleans up any old versions of these conditions.
