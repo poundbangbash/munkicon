@@ -8,6 +8,16 @@ try:
 except ImportError:
     from .munkicon import worker
 
+# Keys: 'filevault_active'
+#       'filevault_deferral'
+#       'filevault_institution_key'
+#       'filevault_personal_key'
+#       'filevault_status'
+#       'filevault_users'
+#       'filevault_encryption_in_progress'
+#       'filevailt_decryption_in_progress'
+#       'filevault_users'
+
 
 class FileVaultConditions(object):
     """FileVault conditions."""
