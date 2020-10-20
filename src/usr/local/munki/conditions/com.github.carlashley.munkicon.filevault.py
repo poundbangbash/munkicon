@@ -31,15 +31,15 @@ class FileVaultConditions(object):
         if os.geteuid() == 0:
             _cmd = ['/usr/bin/fdesetup', verb]
 
-            _subprocess = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            _result, _error = _subprocess.communicate()
+            _p = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            _r, _e = _p.communicate()
 
-            if _subprocess.returncode == 0 or (verb == 'showdeferralinfo' and _subprocess.returncode == 20):
-                if _result:
-                    if isinstance(_result, bytes):
-                        _result = _result.decode('utf-8').strip()
+            if _p.returncode == 0 or (verb == 'showdeferralinfo' and _p.returncode == 20):
+                if _r:
+                    if isinstance(_r, bytes):
+                        _r = _r.decode('utf-8').strip()
 
-                    result = _result
+                    result = _r
         else:
             sys.exit(1)
 
