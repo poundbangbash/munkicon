@@ -8,17 +8,20 @@ except ImportError:
     from .munkicon import plist
     from .munkicon import worker
 
+# Keys: 'pppcp_payloads'
+
 
 class PPPCPConditions(object):
     """Generates a simple array of PPPCP payloads deployed via MDM."""
     def __init__(self):
         self.conditions = self._process()
 
-    def _get_mdm_pppcp_overrides(self):
+    def _pppcp_overrides(self):
         """Returns PPPCP identifiers from MDM overrides."""
-        result = set()
+        result = {'pppcp_payloads': list()}
 
         _mdmoverrides = '/Library/Application Support/com.apple.TCC/MDMOverrides.plist'
+        _result = set()
 
         if os.path.exists(_mdmoverrides):
             _overrides = plist.readPlist(path=_mdmoverrides)
@@ -28,7 +31,9 @@ class PPPCPConditions(object):
                     for _payload, _values in _payloads.items():
                         _identifier = _values.get('Identifier', None)
 
-                        result.add(_identifier)
+                        _result.add(_identifier)
+
+        result['pppcp_payloads'] = list(_result)
 
         return result
 
@@ -36,7 +41,7 @@ class PPPCPConditions(object):
         """Process all conditions and generate the condition dictionary."""
         result = dict()
 
-        result['pppcp_payloads'] = list(self._get_mdm_pppcp_overrides())
+        result.update(self._pppcp_overrides())
 
         return result
 
