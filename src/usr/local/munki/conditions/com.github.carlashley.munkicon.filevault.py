@@ -35,120 +35,87 @@ class FileVaultConditions(object):
 
         return result
 
-    def _get_status(self):
-        """FileVault state (on or off) and returns True/False for encryption/decryption processes when
-        FileVault has been turned on."""
-        result = {'status': '',
-                  'encryption_in_progress': False,
-                  'decryption_in_progress': False}
+    def _status(self):
+        """FileVault Status."""
+        result = {'filevault_status': '',
+                  'filevault_encryption_in_progress': '',
+                  'filevault_encryption_in_progress': ''}
 
         _result = self._fdesetup(verb='status')
 
         if _result:
-            _lines = _result.strip().splitlines()
-            for _line in _lines:
-                _line = _line.strip()
+            for _l in _result.splitlines():
+                _l = _l.strip()
 
-                if 'FileVault is ' in _line:
-                    _fv_state = _line.replace('FileVault is ', '').lower().replace('.', '')
-                    # _fv_state = _result.replace('FileVault is ', '').lower().replace('.', '')
+                if 'FileVault is ' in _l:
+                    result['filevault_status'] = _l.replace('FileVault is ', '').lower().replace('.', '')
 
-                    result['status'] = _fv_state
-
-                result['encryption_status'] = True if 'Encryption in progress: Percent completed = ' in _line else False
-                result['decryption_status'] = True if 'Decryption in progress: Percent completed = ' in _line else False
+                result['filevault_encryption_in_progress'] = 'Encryption in progress: Percent completed = ' in _l
+                result['filevault_decryption_in_progress'] = 'Decryption in progress: Percent completed = ' in _l
 
         return result
 
-    def _get_isactive(self):
-        """FileVault is on and active. This differs to `status`."""
-        result = False
+    def _is_active(self):
+        """FileVault on and active. Differs to 'status'."""
+        result = {'filevault_active': ''}
 
-        _result = self._fdesetup(verb='isactive')
-
-        if _result:
-            result = True if _result == 'true' else False
+        result['filevault_active'] = 'true' in self._fdesetup(verb='isactive')
 
         return result
 
-    def _get_users(self):
-        """Array of FileVault users."""
-        result = None
+    def _users(self):
+        """FileVault Users."""
+        result = {'filevault_users': ''}
 
         _result = self._fdesetup(verb='list')
 
+        # The UUID in the command output is stripped as this is not necessarily known.
         if _result:
-            # This returns the 'username,GeneratedUID' of each user that is added to FileVault,
-            # however the GeneratedUID value cannot be known ahead of time, and will be different,
-            # so each 'username,GeneratedUID' is split and only the 'username' value is kept.
-            result = {_line.strip().split(',')[0] for _line in _result.splitlines()}
+            result['filevault_users'] = [_l.strip().split(',')[0] for _l in _result.splitlines()]
 
         return result
 
-    def _get_deferralinfo(self):
-        """Deferrals are active or none exist."""
-        result = None
+    def _deferral_info(self):
+        """Deferrals"""
+        result = {'filevault_deferral': ''}
 
         _result = self._fdesetup(verb='showdeferralinfo')
 
         if _result:
-            _lines = _result.splitlines()
+            for _l in _result.splitlines():
+                _l = _l.strip()
 
-            for _line in _lines:
-                if 'Not found.' in _line:
-                    result = 'not_found'
-                    break
-                elif 'Defer' in _line:
-                    result = 'active'
-                    break
+                result['filevault_deferral'] = 'active' if 'Defer' in _l else 'not_found'
+                break
 
         return result
 
-    def _get_has_personal_recovery_key(self):
-        """Personal recovery key is in use."""
-        result = False
+    def _has_personal_key(self):
+        """Personal recovery key."""
+        result = {'filevault_personal_key': ''}
 
-        _result = self._fdesetup(verb='haspersonalrecoverykey')
-
-        if _result:
-            result = True if _result == 'true' else False
+        result['filevault_personal_key'] = 'true' in self._fdesetup(verb='haspersonalrecoverykey')
 
         return result
 
-    def _get_has_institute_recovery_key(self):
-        """Institutional recovery key is in use."""
-        result = False
+    def _has_institution_key(self):
+        """Personal recovery key."""
+        result = {'filevault_institution_key': ''}
 
-        _result = self._fdesetup(verb='hasinstitutionalrecoverykey')
-
-        if _result:
-            result = True if _result == 'true' else False
+        result['filevault_institution_key'] = 'true' in self._fdesetup(verb='hasinstitutionalrecoverykey')
 
         return result
 
     def _process(self):
         """Process all conditions and generate the condition dictionary."""
-        result = {'filevault_active': self._get_isactive(),
-                  'filevault_deferral': '',
-                  'filevault_institution_key': self._get_has_institute_recovery_key(),
-                  'filevault_personal_key': self._get_has_personal_recovery_key(),
-                  'filevault_status': '',
-                  'filevault_users': list()}
+        result = dict()
 
-        _fde_deferral = self._get_deferralinfo()
-        _fde_status = self._get_status()
-        _fde_users = self._get_users()
-
-        if _fde_deferral:
-            result['filevault_deferral'] = _fde_deferral
-
-        if _fde_status:
-            result['filevault_status'] = _fde_status.get('status', '')
-            result['filevault_encryption_in_progress'] = _fde_status.get('encryption_status', False)
-            result['filevault_decryption_in_progress'] = _fde_status.get('decryption_status', False)
-
-        if _fde_users:
-            result['filevault_users'] = list(_fde_users)
+        result.update(self._status())
+        result.update(self._is_active())
+        result.update(self._users())
+        result.update(self._deferral_info())
+        result.update(self._has_personal_key())
+        result.update(self._has_institution_key())
 
         return result
 
