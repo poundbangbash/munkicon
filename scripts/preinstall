@@ -37,4 +37,6 @@ if [ -d ${MUNKICON_ROOT} ]; then
 fi
 
 # -- Old 'com.github.carlashley.munkicon'
-/bin/rm -f ${CONDITIONS_ROOT}/com.github.carlashley.*.py 2>/dev/null
+if ls ${CONDITIONS_ROOT}/com.github.carlashley.*.py &> /dev/null; then
+    /bin/rm -f ${CONDITIONS_ROOT}/com.github.carlashley.*.py 2>/dev/null
+fi
