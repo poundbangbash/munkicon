@@ -11,10 +11,10 @@ After cloning, run `./build.sh`, the resulting package is generated in `./dist/p
 The `postinstall` script re-writes the shebang in the processor files if `/usr/local/munki-python` is found.
 
 ## Disable processors
-Delete any processor you don't want to have run. At some point I might work on making an installer pkg that has a choices XML capability.
+Delete any processor you don't want to have run. An installer pkg that has a choices XML capability may be built in the future.
 
 ## Binaries
-All binaries called by the processors exist in macOS 10.15.7+. I'm not aiming on making it backwards compatible with older macOS versions.
+All binaries called by the processors exist in macOS 10.15.7+. No intention to make these backwards compatible with older macOS versions.
 
 ## Issues
 Raise an issue here https://github.com/carlashley/munkicon/issues.
