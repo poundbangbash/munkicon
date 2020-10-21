@@ -94,7 +94,7 @@ Useful for obtaining various bits of system setup information.
 - - `cups_web_interface_enabled` is either `True` or `False`.
 - - `efi_password_enabled` is either `True` or `False`. Relies on `/usr/libexec/mdmclient` existing.
 - - `ntp_enabled` is either `True` or `False`.
-- - `ntp_server` returns the active NTP server URL as a string in the format `"0.au.pool.ntp.org"`.
+- - `ntp_servers` returns an array of all servers found in `/etc/ntp.conf`.
 - - `printer_sharing_enabled` is either `True` or `False`.
 - - `remote_apple_events_enabled` is either `True` or `False`.
 - - `sip_enabled` is either `True` or `False`.
@@ -106,7 +106,7 @@ Useful for obtaining various bits of system setup information.
 - - `cups_web_interface_enabled == FALSE`
 - - `efi_password_enabled == TRUE`
 - - `ntp_enabled == TRUE`
-- - `ntp_server == "time.apple.asia.com"`
+- - `ANY ntp_servers == 'time.apple.asia.com'`
 - - `printer_sharing_enabled == FALSE`
 - - `remote_apple_events_enabled == FALSE`
 - - `sip_enabled == TRUE`
