@@ -31,8 +31,30 @@ class SystemExtensionPolicyConditions(object):
         _sys_ext_team_bundle = set()
 
         if os.path.exists(_db_file):
+            # Note, System Ext profiles do not have a payload key of allowed
+            # Bundle ID's per https://developer.apple.com/documentation/devicemanagement/systemextensions
+            _ext_policies = plist.readPlist(path=_db_file)['extensionPolicies']
+
+            # This appears to be where manually approved items exist.
             _exts = plist.readPlist(path=_db_file)['extensions']
 
+            # Policies managed by profiles
+            for _policy in _ext_policies:
+                _allowed_team_ids = _policy.get('allowedTeamIDs', None)
+                _allowed_team_bundles = _policy.get('allowedExtensions', None)
+
+                if _allowed_team_ids:
+                    for _id in _allowed_team_ids:
+                        _sys_ext_teams.add(_id)
+
+                if _allowed_team_bundles:
+                    for _k, _v in _allowed_team_bundles.items():
+                        for _bundle in _v:
+                            _team_bundle_str = '{},{}'.format(_k, _bundle)
+
+                            _sys_ext_team_bundle.add(_team_bundle_str)
+
+            # Policies managed by user
             if _exts:
                 for _e in _exts:
                     _bundle_id = _e.get('identifier', None)
@@ -50,9 +72,9 @@ class SystemExtensionPolicyConditions(object):
                             _team_bundle_str = '{},{}'.format(_team_id, _bundle_id)
                             _sys_ext_team_bundle.add(_team_bundle_str)
 
-                result['sys_ext_teams'] = list(_sys_ext_teams)
-                result['sys_ext_bundles'] = list(_sys_ext_bundles)
-                result['sys_ext_team_bundle'] = list(_sys_ext_team_bundle)
+        result['sys_ext_teams'] = list(_sys_ext_teams)
+        result['sys_ext_bundles'] = list(_sys_ext_bundles)
+        result['sys_ext_team_bundle'] = list(_sys_ext_team_bundle)
 
         return result
 
