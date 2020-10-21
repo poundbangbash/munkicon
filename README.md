@@ -82,10 +82,12 @@ Useful in determining if a package in a manifest should be made available (or no
 - - - Example: `'UBF8T346G9'`
 - - `sys_ext_team_bundle` contains an array of Team ID's and Bundle ID's (as a comma seperated string) for any whitelisted System Extensions (user and/or MDM) which have _both_ the Team ID and Bundle ID present.
 - - - Example: `'UBF8T346G9,com.microsoft.wdav.netext'`
+- - `sys_ext_types` contains an array of Team ID's and Extension Types (`DriverExtension`, `NetworkExtension`, `EndpointSecurityExtension`) that have been whitelisted (MDM).
 - Usage (on their own or combine):
 - - `ANY sys_ext_bundles == 'com.microsoft.wdav.netext'`
 - - `ANY sys_ext_teams == 'UBF8T346G9'`
 - - `ANY sys_ext_team_bundle == 'UBF8T346G9,com.microsoft.wdav.netext'`
+- - `ANY sys_ext_types == UBF8T346G9,EndpointSecurityExtension`
 
 ### com.github.carlashley.munkicon.system-setup.py
 Useful for obtaining various bits of system setup information.
