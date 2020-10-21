@@ -2,7 +2,26 @@
 A collection of conditional items scripts for munki.
 
 ## DISCLAIMER
-These are developed with my own end results in mind. Feel free to use these, but I recommend forking them and possibly maintaining your own, as they are likely to change at any time.
+This is experimental. Please test that they work for you in your environment.
+
+## Building a package
+After cloning, run `./build.sh`, the resulting package is generated in `./dist/pkg/`.
+
+## Munki Python Symlink
+The `postinstall` script re-writes the shebang in the processor files if `/usr/local/munki-python` is found.
+
+## Disable processors
+Delete any processor you don't want to have run. At some point I might work on making an installer pkg that has a choices XML capability.
+
+## Binaries
+All binaries called by the processors exist in macOS 10.15.7+. I'm not aiming on making it backwards compatible with older macOS versions.
+
+## Issues
+Raise an issue here https://github.com/carlashley/munkicon/issues.
+To get any errors that might end up in `stdout`/`stderr`, manually execute the processors and copy+paste any output into the issue:
+```
+for i in /usr/local/munki/conditions/com.github.carlashley.munkicon.*.py; do $i; done
+```
 
 ### com.github.carlashley.munkicon.filevault.py
 Usefule in determining various states/results pertaining to FileVault.
