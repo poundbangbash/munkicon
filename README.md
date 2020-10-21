@@ -75,7 +75,7 @@ Useful in determing basic version information about various Python versions.
 
 ### com.github.carlashley.munkicon.system-extensions.py
 Useful in determining if a package in a manifest should be made available (or not) based on if a System Extension is whitelisted. For example, a VPN might not run if its System Extensions are not whitelisted before installation.
-- Generates three conditions:
+- Generates four conditions:
 - - `sys_ext_bundles` contains an array of Bundle ID's for System Extensions which are whitelisted (user and/or MDM).
 - - - Example: `'com.microsoft.wdav.netext'`
 - - `sys_ext_teams` contains an array of Team ID's for System Extensions which have been whitelisted (user and/or MDM).
