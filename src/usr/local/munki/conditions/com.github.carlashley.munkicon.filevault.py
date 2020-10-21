@@ -69,7 +69,10 @@ class FileVaultConditions(object):
         """FileVault on and active. Differs to 'status'."""
         result = {'filevault_active': ''}
 
-        result['filevault_active'] = 'true' in self._fdesetup(verb='isactive')
+        try:
+            result['filevault_active'] = 'true' in self._fdesetup(verb='isactive')
+        except TypeError:
+            pass
 
         return result
 

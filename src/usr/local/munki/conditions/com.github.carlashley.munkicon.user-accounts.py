@@ -1,6 +1,5 @@
 #!/usr/local/munki/python
 import subprocess
-import sys
 
 try:
     from munkicon import plist
@@ -9,67 +8,76 @@ except ImportError:
     from .munkicon import plist
     from .munkicon import worker
 
+# Keys: 'user_home_path'
+
 
 class UserAccounts(object):
     def __init__(self):
         self.conditions = self._process()
 
-    def _user_list(self):
-        """Generate a list of users that exist on the system"""
-        result = None
+    def _users(self):
+        """Users."""
+        result = set()
+
+        _ignore_users = ['daemon',
+                         'nobody',
+                         'root']
 
         _cmd = ['/usr/bin/dscl', '.', '-list', '/Users']
 
-        _subprocess = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        _result, _error = _subprocess.communicate()
+        _p = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        _r, _e = _p.communicate()
 
-        if _subprocess.returncode == 0:
-            if _result:
-                result = {x.decode('utf-8').strip() for x in _result.splitlines()}
-        else:
-            sys.exit(1)
+        if _p.returncode == 0:
+            if isinstance(_r, bytes):
+                _r = _r.decode('utf-8').strip()
+
+            for _u in _r.splitlines():
+                if not _u.startswith('_'):
+                    if _u not in _ignore_users:
+                        result.add(_u)
 
         return result
 
-    def _get_users(self):
-        """Reads all users info."""
-        result = set()
-        _users = self._user_list()
+    def _home_dirs(self):
+        """Home Directories"""
+        result = {'user_home_path': list()}
 
-        _ignored_users = ['nobody', 'daemon']
+        _users = self._users()
+
+        _home_dirs = set()
 
         if _users:
-            for _user in _users:
-                _result = None
-                _home_dir = None
+            for _u in _users:
+                _cmd = ['/usr/bin/dscl', '-plist', '.', '-read', '/Users/{}'.format(_u), 'NFSHomeDirectory']
 
-                _cmd = ['/usr/bin/dscl', '-plist', '.', '-read', '/Users/{}'.format(_user), 'NFSHomeDirectory']
+                _p = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                _r, _e = _p.communicate()
 
-                _subprocess = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                _result, _error = _subprocess.communicate()
+                if _p.returncode == 0:
+                    if isinstance(_r, bytes):
+                        _r = _r.decode('utf-8').strip()
 
-                if _subprocess.returncode == 0:
-                    if _result:
-                        _home_dir = plist.readPlistFromString(_result)['dsAttrTypeStandard:NFSHomeDirectory']
+                    if _r:
+                        _h = plist.readPlistFromString(_r)['dsAttrTypeStandard:NFSHomeDirectory']
 
-                        if _home_dir:
+                        if _h:
                             try:
-                                _result = '{},{}'.format(_user, _home_dir[0].strip())
+                                _r = '{},{}'.format(_u, _h[0].strip())
                             except IndexError:
-                                _result = '{},{}'.format(_user, _home_dir.strip())
-                else:
-                    sys.exit(1)
+                                _r = '{},{}'.format(_u, _h.strip())
 
-                if _result and not _result.startswith('_') and _user not in _ignored_users:
-                    result.add(_result)
+                            _home_dirs.add(_r)
+
+        result['user_home_path'] = list(_home_dirs)
 
         return result
 
     def _process(self):
         """Process all conditions and generate the condition dictionary."""
-        result = {'user_home_path': set()}
+        result = dict()
 
-        result['user_home_path'] = list(self._get_users())
+        result.update(self._home_dirs())
 
         return result
 

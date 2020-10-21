@@ -10,6 +10,7 @@ except ImportError:
 # Keys: 'mac_os_python_path'
 #       'mac_os_python_ver'
 #       'munki_python_path'
+#       'munki_python_symlink'
 #       'munki_python_ver'
 #       'official_python3_path'
 #       'official_python3_ver'
@@ -25,6 +26,7 @@ class PythonConditions(object):
         result = {'mac_os_python_path': '',
                   'mac_os_python_ver': '',
                   'munki_python_path': '',
+                  'munki_python_symlink': '',
                   'munki_python_ver': '',
                   'official_python3_path': '',
                   'official_python3_ver': ''}
@@ -40,6 +42,10 @@ class PythonConditions(object):
             if os.path.exists(_v):
                 _real_path = os.path.realpath(_v)
                 result[_k] = _real_path
+
+                # Include the munki python symlink in use
+                if _k == 'munki_python_path':
+                    result['munki_python_symlink'] = _v
 
                 _cmd = [_real_path, '--version']
 

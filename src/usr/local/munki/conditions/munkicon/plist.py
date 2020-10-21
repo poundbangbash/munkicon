@@ -3,6 +3,7 @@ import os
 import plistlib
 import shutil
 import subprocess
+import tempfile
 
 from sys import version_info
 from xml.parsers.expat import ExpatError
@@ -24,8 +25,11 @@ def readPlist(path):
             try:
                 result = plistlib.readPlist(path)
             except ExpatError:
-                _tmp_path = '/tmp/{}'.format(os.path.basename(path))
+                _bn = os.path.basename(path)
+                _tmp_dir = tempfile.mkdtemp()
+                _tmp_path = os.path.join(_tmp_dir, _bn)
                 shutil.copy(path, _tmp_path)
+
                 _cmd = ['/usr/bin/plutil', '-convert', 'xml1', _tmp_path]
 
                 _p = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -43,6 +47,9 @@ def readPlistFromString(obj):
     result = dict()
 
     if DEPRECATED:
+        if isinstance(obj, str):
+            obj = obj.encode()
+
         result = plistlib.loads(obj)
     else:
         result = plistlib.readPlistFromString(obj)
@@ -52,8 +59,15 @@ def readPlistFromString(obj):
 
 def writePlist(path, data):
     """Write a property list to file."""
+    if os.path.exists(path):
+        _data = readPlist(path)
+
+        _data.update(data)
+    else:
+        _data = data
+
     if DEPRECATED:
         with open(path, 'wb') as _f:
-            plistlib.dump(data, _f)
+            plistlib.dump(_data, _f)
     else:
-        plistlib.writePlist(data, path)
+        plistlib.writePlist(_data, path)

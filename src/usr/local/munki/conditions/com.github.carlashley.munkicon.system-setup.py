@@ -1,12 +1,23 @@
 #!/usr/local/munki/python
 import os
 import subprocess
-import sys
 
 try:
     from munkicon import worker
 except ImportError:
     from .munkicon import worker
+
+# Keys: 'ard_enabled'
+#       'cups_web_interface_enabled'
+#       'efi_password_enabled'
+#       'ntp_enabled'
+#       'ntp_servers'
+#       'printer_sharing_enabled'
+#       'remote_apple_events_enabled'
+#       'sip_enabled'
+#       'ssh_enabled'
+#       'timezone'
+#       'wake_on_lan'
 
 
 class SystemSetupConditions(object):
@@ -14,182 +25,153 @@ class SystemSetupConditions(object):
     def __init__(self):
         self.conditions = self._process()
 
-    def _csrutil(self):
-        """Executes the `/usr/libexec/mdmclient` binary."""
-        result = {'sip_enabled': False}
+    def _ard_state(self):
+        """ARD State."""
+        result = {'ard_enabled': ''}
 
-        _csrutil = '/usr/bin/csrutil'
+        _cmd = ['/usr/libexec/mdmclient', 'QuerySecurityInfo']
 
-        if os.geteuid() == 0 and os.path.exists(_csrutil):
-            _cmd = [_csrutil, 'status']
+        _p = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        _r, _e = _p.communicate()
 
-            _subprocess = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            _result, _error = _subprocess.communicate()
+        if _p.returncode == 0:
+            if _r:
+                if isinstance(_r, bytes):
+                    _r = _r.decode('utf-8').strip()
 
-            if _subprocess.returncode == 0:
-                if _result:
-                    if isinstance(_result, bytes):
-                        _result = _result.decode('utf-8')
+                for _l in _r.splitlines():
+                    _l = _l.strip()
 
-                    _result = _result.strip()
-
-                    # Iterate over the result to build a dictionary of results
-                    result = dict()
-
-                    for _line in _result.splitlines():
-                        _line = _line.strip()
-                        if 'System Integrity Protection status: ' in _line:
-                            _line = _line.strip().split(': ')
-
-                            _val = True if _line[1] == 'enabled.' else False
-
-                            result['sip_enabled'] = _val
-        else:
-            sys.exit(1)
+                    if 'RemoteDesktopEnabled' in _l:
+                        result['ard_enabled'] = '1' in _l
+                        break
 
         return result
 
-    def _cupsctl(self):
-        """Executes the `/usr/libexec/mdmclient` binary."""
-        result = {'printer_sharing_enabled': False,
-                  'cups_web_interface_enabled': False}
+    def _efi_password_state(self):
+        """EFI Password State."""
+        result = {'efi_password_enabled': ''}
 
-        _cupsctl = '/usr/sbin/cupsctl'
-        _cups_keys = {'_share_printers': 'printer_sharing_enabled',
-                      'WebInterface': 'cups_web_interface_enabled'}
+        _cmd = ['/usr/sbin/firmwarepasswd', '-check']
 
-        if os.geteuid() == 0 and os.path.exists(_cupsctl):
-            _cmd = [_cupsctl]
+        _p = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        _r, _e = _p.communicate()
 
-            _subprocess = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            _result, _error = _subprocess.communicate()
+        if _p.returncode == 0:
+            if _r:
+                if isinstance(_r, bytes):
+                    _r = _r.decode('utf-8').strip()
 
-            if _subprocess.returncode == 0:
-                if _result:
-                    if isinstance(_result, bytes):
-                        _result = _result.decode('utf-8')
-
-                    _result = _result.strip()
-
-                    # Iterate over the result to build a dictionary of results
-                    result = dict()
-
-                    for _line in _result.splitlines():
-                        _line = _line.strip().split('=')
-
-                        _key = _line[0]
-                        _val = _line[1]
-
-                        if _key in [_k for _k, _nk in _cups_keys.items()]:
-                            if _val == '1' or _val == 'No':
-                                _val = True
-                            elif _val == '0' or _val == 'Yes':
-                                _val = False
-
-                            result[_cups_keys[_key]] = _val
-        else:
-            sys.exit(1)
+                result['efi_password_enabled'] = 'Yes' in _r.split(': ')
 
         return result
 
-    def _mdmclient(self, verb):
-        """Executes the `/usr/libexec/mdmclient` binary."""
-        result = None
+    def _printer_state(self):
+        """Printer State."""
+        result = {'cups_web_interface_enabled': '',
+                  'printer_sharing_enabled': ''}
 
-        _mdmclient = '/usr/libexec/mdmclient'
+        _cmd = ['/usr/sbin/cupsctl']
 
-        if os.geteuid() == 0 and os.path.exists(_mdmclient):
-            _cmd = [_mdmclient, verb]
+        _p = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        _r, _e = _p.communicate()
 
-            _subprocess = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            _result, _error = _subprocess.communicate()
+        if _p.returncode == 0:
+            if _r:
+                if isinstance(_r, bytes):
+                    _r = _r.decode('utf-8').strip()
 
-            if _subprocess.returncode == 0:
-                if _result:
-                    if isinstance(_result, bytes):
-                        _result = _result.decode('utf-8')
+                for _l in _r.splitlines():
+                    _l = _l.strip()
 
-                    result = _result.strip()
-        else:
-            sys.exit(1)
+                    if '_share_printers' in _l:
+                        result['printer_sharing_enabled'] = '1' in _l
+
+                    if 'WebInterface' in _l:
+                        result['cups_web_interface_enabled'] = 'Yes' in _l
 
         return result
 
-    def _system_setup(self):
-        """Executes the `systemsetup` command and processes output."""
-        result = {'timezone': '',
-                  'ntp_enabled': False,
-                  'ntp_server': '',
-                  'wake_on_lan': False,
-                  'ssh_enabled': False,
-                  'remote_apple_events_enabled': False}
+    def _sip_status(self):
+        """SIP Status."""
+        result = {'sip_enabled': ''}
+
+        _cmd = ['/usr/bin/csrutil', 'status']
+
+        _p = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        _r, _e = _p.communicate()
+
+        if _p.returncode == 0:
+            if _r:
+                if isinstance(_r, bytes):
+                    _r = _r.decode('utf-8').strip()
+
+                result['sip_enabled'] = 'System Integrity Protection status: enabled' in _r
+
+        return result
+
+    def _systemsetup(self):
+        """System Setup."""
+        result = {'ntp_enabled': '',
+                  'ntp_servers': '',
+                  'remote_apple_events_enabled': '',
+                  'ssh_enabled': '',
+                  'timezone': '',
+                  'wake_on_lan': ''}
 
         _verbs = {'gettimezone': 'timezone',
                   'getusingnetworktime': 'ntp_enabled',
-                  'getnetworktimeserver': 'ntp_server',
                   'getwakeonnetworkaccess': 'wake_on_lan',
                   'getremotelogin': 'ssh_enabled',
                   'getremoteappleevents': 'remote_apple_events_enabled'}
 
-        if os.geteuid() == 0:
-            for _verb, _key in _verbs.items():
-                _cmd = ['/usr/sbin/systemsetup', '-{}'.format(_verb)]
+        # The '-getnetworktimeserver' systemsetup argument only returns the first
+        # ntp server found in the '/etc/ntp.conf' file, so read it directly if it exists.
+        _ntp_servers = list()
+        _ntp_conf = '/etc/ntp.conf'
 
-                _subprocess = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                _result, _error = _subprocess.communicate()
+        if os.path.exists(_ntp_conf):
+            with open(_ntp_conf, 'r') as _f:
+                _lines = _f.readlines()
 
-                if _subprocess.returncode == 0:
-                    if _result:
-                        if isinstance(_result, bytes):
-                            _result = ''.join(_result.decode('utf-8').strip().split(': ')[1:])
+                if _lines:
+                    for _l in _lines:
+                        _srv = _l.strip().replace('server ', '')
 
-                            if _result == 'On':
-                                _result = True
-                            elif _result == 'Off':
-                                _result = False
+                        # Maintain the order of servers read, and exclude duplicates
+                        if _srv not in _ntp_servers:
+                            _ntp_servers.append(_l.strip().replace('server ', ''))
 
-                            result[_key] = _result
-        else:
-            sys.exit(1)
+        # Use 'systemsetup' for simple system details
+        for _k, _v in _verbs.items():
+            _cmd = ['/usr/sbin/systemsetup', '-{}'.format(_k)]
+
+            _p = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            _r, _e = _p.communicate()
+
+            if _p.returncode == 0:
+                if _r:
+                    if isinstance(_r, bytes):
+                        _r = _r.decode('utf-8').strip()
+
+                    if _k not in ['gettimezone', 'getnetworktimeserver']:
+                        result[_v] = 'On' in _r.split(': ')[1:]
+                    elif _k == 'gettimezone':
+                        result[_v] = _r.split(': ')[1]
+
+        result['ntp_servers'] = _ntp_servers
 
         return result
 
     def _process(self):
         """Process all conditions and generate the condition dictionary."""
-        result = None
+        result = dict()
 
-        result = self._system_setup()
-
-        _cups = self._cupsctl()
-        _sip = self._csrutil()
-
-        if _cups:
-            result.update(_cups)
-
-        if _sip:
-            result.update(_sip)
-
-        # Note, the output here looks like it could be read by plist/json, but it
-        # can't be because it's not a real plist/json output. Iterate over lines.
-        _mdmquery_device_security = self._mdmclient('QuerySecurityInfo')
-
-        if _mdmquery_device_security:
-            for _line in _mdmquery_device_security.splitlines():
-                _line = _line.strip()
-
-                try:
-                    _r = _line.split(' = ')[1].replace(';', '')
-                except IndexError:
-                    _r = None
-
-                if 'RemoteDesktopEnabled = ' in _line:
-                    result['ard_enabled'] = True if _r == '1' else False
-
-                if 'PasswordExists = ' in _line:
-                    result['efi_password_enabled'] = True if _r == '1' else False
-        else:
-            result['ard_enabled'] = ''
-            result['efi_password_enabled'] = ''
+        result.update(self._ard_state())
+        result.update(self._efi_password_state())
+        result.update(self._printer_state())
+        result.update(self._sip_status())
+        result.update(self._systemsetup())
 
         return result
 
