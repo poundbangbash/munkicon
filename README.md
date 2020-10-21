@@ -87,7 +87,7 @@ Useful in determining if a package in a manifest should be made available (or no
 - - `ANY sys_ext_bundles == 'com.microsoft.wdav.netext'`
 - - `ANY sys_ext_teams == 'UBF8T346G9'`
 - - `ANY sys_ext_team_bundle == 'UBF8T346G9,com.microsoft.wdav.netext'`
-- - `ANY sys_ext_types == UBF8T346G9,EndpointSecurityExtension`
+- - `ANY sys_ext_types == 'UBF8T346G9,EndpointSecurityExtension'`
 
 ### com.github.carlashley.munkicon.system-setup.py
 Useful for obtaining various bits of system setup information.
