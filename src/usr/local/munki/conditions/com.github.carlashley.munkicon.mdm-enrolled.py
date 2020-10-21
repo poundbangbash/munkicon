@@ -1,4 +1,4 @@
-#!/usr/local/munki/python
+#!/usr/local/munki/munki-python
 
 import subprocess
 import sys
@@ -32,6 +32,7 @@ class MDMEnrolledConditions(object):
                     _value = _item.lower().split(': ')[1].replace(' ', '_').replace('(', '').replace(')', '')
 
                     result[_key] = _value
+                return result
         else:
             sys.exit(1)
 
@@ -43,8 +44,8 @@ class MDMEnrolledConditions(object):
         _result = self._get_enrollment_state()
 
         if _result:
-            result['enrolled_via_dep'] = result.get('enrolled_via_dep', '')
-            result['mdm_enrollment'] = result.get('mdm_enrollment', '')
+            result['enrolled_via_dep'] = _result.get('enrolled_via_dep', '')
+            result['mdm_enrollment'] = _result.get('mdm_enrollment', '')
 
         return result
 
